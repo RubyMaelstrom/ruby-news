@@ -1,10 +1,5 @@
--- lua/rss_fetcher.lua
--- Fetches Google News feeds (JSON or XML) and parses them into a structured format
--- Uses curl via io.popen for reliable HTTPS support
-
 local _M = {}
 
--- HTTP GET using curl
 local function http_get(url, timeout_ms)
     local timeout = (timeout_ms or 15000) / 1000
     local cmd = string.format(
@@ -28,7 +23,6 @@ local function http_get(url, timeout_ms)
     return body
 end
 
--- Parse an XML/RSS feed (Google News RSS/Atom format)
 local function parse_xml_feed(body)
     local feed = {
         title = "",
@@ -103,7 +97,6 @@ local function parse_xml_feed(body)
     return feed
 end
 
--- Fetch and parse a Google News feed
 function _M.fetch_feed(section, loc, lang)
     local url
 

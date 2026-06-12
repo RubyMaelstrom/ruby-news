@@ -1,7 +1,3 @@
--- lua/handlers/choose_edition.lua
--- Country edition selector page
--- Replaces choose_edition.php (static HTML, no HTTP calls needed)
-
 local function get_param(name)
     local val = ngx.var["arg_" .. name]
     if val then return val end
@@ -11,7 +7,6 @@ end
 local function handle()
     local loc = get_param("loc") or "US"
 
-    -- List of all supported country editions
     local editions = {
         { code = "US", name = "United States" },
         { code = "JP", name = "Japan" },
@@ -45,7 +40,6 @@ local function handle()
 
     local loc_upper = loc:upper()
 
-    -- Build page output
     local out = {}
     out[#out + 1] = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 2.0//EN">'
     out[#out + 1] = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
@@ -61,7 +55,7 @@ local function handle()
     out[#out + 1] = '   <p><h2>CHOOSE YOUR EDITION:</h2></p>'
 
     for _, edition in ipairs(editions) do
-       local href = '/news?section=nation&loc=' .. edition.code
+        local href = '/news?section=nation&loc=' .. edition.code
         if edition.name:find("RIP") then
             out[#out + 1] = '   <p>' .. edition.name .. '</p>'
         else

@@ -1,10 +1,5 @@
--- lua/google_news_decoder.lua
--- Decodes Google News article URLs to their actual article URLs
--- Uses curl via io.popen for reliable HTTPS support
-
 local _M = {}
 
--- HTTP GET using curl
 local function http_get(url, timeout_ms)
     local timeout = (timeout_ms or 15000) / 1000
     local cmd = string.format(
@@ -28,7 +23,6 @@ local function http_get(url, timeout_ms)
     return body
 end
 
--- HTTP POST using curl
 local function http_post(url, body, timeout_ms)
     local timeout = (timeout_ms or 15000) / 1000
     local cmd = string.format(
@@ -49,7 +43,6 @@ local function http_post(url, body, timeout_ms)
     return resp_body
 end
 
--- Extract base64 string from Google News article URL
 function _M.get_base64_str(source_url)
     local parsed_host = source_url:match("https?://([^/]+)")
     if not parsed_host or not source_url:find("news.google.com") then
@@ -91,7 +84,6 @@ function _M.get_base64_str(source_url)
     return { status = false, message = "Invalid Google News URL format." }
 end
 
--- Fetch decoding params (signature and timestamp) from Google News page
 function _M.get_decoding_params(base64_str)
     local urls = {
         "https://news.google.com/articles/" .. base64_str,
@@ -101,7 +93,6 @@ function _M.get_decoding_params(base64_str)
     for _, url in ipairs(urls) do
         local html = http_get(url)
         if html then
-            -- Exact equivalent of PHP: preg_match('/data-n-a-sg="([^"]+)"/', $html, $m)
             local sg_match = html:match('data%-n%-a%-sg="([^"]+)"')
             local ts_match = html:match('data%-n%-a%-ts="([^"]+)"')
             if sg_match and ts_match then
@@ -113,7 +104,6 @@ function _M.get_decoding_params(base64_str)
     return { status = false, message = "Failed to fetch decoding params from Google News." }
 end
 
--- Decode URL using signature + timestamp via Google's batchexecute API
 function _M.decode_url(signature, timestamp, base64_str)
     local url = "https://news.google.com/_/DotsSplashUi/data/batchexecute"
 
@@ -127,7 +117,6 @@ function _M.decode_url(signature, timestamp, base64_str)
 
     local cjson = require "cjson"
     local encoded_json = cjson.encode({{payload}})
-    -- URL-encode the JSON payload (same as PHP's urlencode())
     local post_body = "f.req=" .. encoded_json:gsub("([^A-Za-z0-9 _.%-])", function(c)
         return ("%%%02X"):format(c:byte())
     end):gsub(" ", "+")
@@ -153,7 +142,6 @@ function _M.decode_url(signature, timestamp, base64_str)
         return { status = false, message = "Failed to parse JSON." }
     end
 
-    -- PHP: $jsonData[0][2] but Lua is 1-based, so [1][3]
     local parsed_data = json_data[1][3]
     if not parsed_data then
         return { status = false, message = "No decoded data found." }
@@ -164,8 +152,6 @@ function _M.decode_url(signature, timestamp, base64_str)
         return { status = false, message = "Failed to parse inner JSON." }
     end
 
-    -- Inner JSON: ["garturlres","URL",1] → 0-based in JSON but Lua gives us 1-based
-    -- PHP accesses $decoded[1] (the URL), which is decoded[2] in Lua
     if decoded[2] then
         return { status = true, decoded_url = decoded[2] }
     end
@@ -173,7 +159,6 @@ function _M.decode_url(signature, timestamp, base64_str)
     return { status = false, message = "Failed to extract decoded URL." }
 end
 
--- Main entry point: decode a Google News article URL to the actual article URL
 function _M.decode_google_news_url(source_url)
     local base64_result = _M.get_base64_str(source_url)
     if not base64_result.status then return base64_result end

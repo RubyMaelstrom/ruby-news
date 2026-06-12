@@ -1,7 +1,3 @@
--- lua/handlers/article.lua
--- Article detail page handler — text-only, no images
--- Uses raw cosockets (ngx.socket.tcp), no external libraries
-
 local string_utils = require "string_util"
 
 local function send_response(status_code, body)
@@ -31,12 +27,10 @@ local function handle()
         send_response(400, 'What do you think you\'re doing... >;(')
     end
 
-    -- Validate it's a Google News URL
     if article_url:sub(1, 23) ~= "https://news.google.com" then
         send_response(400, "That's not news :(")
     end
 
-    -- Decode the Google News URL to get the actual article URL
     local decoder = require "google_news_decoder"
     local decode_result = decoder.decode_google_news_url(article_url)
 
@@ -46,7 +40,6 @@ local function handle()
 
     local actual_article_url = decode_result.decoded_url
 
-    -- Extract content using heuristic parser (fetches + parses in one step)
     local extract = require "article_extract"
     local allowed_tags = "<ol><ul><li><br><p><small><font><b><strong><i><em><blockquote><h1><h2><h3><h4><h5><h6>"
 
@@ -57,14 +50,11 @@ local function handle()
         send_response(500, 'Sorry - working on it! (no content detected)<br>')
     end
 
-    -- Strip remaining disallowed tags from the extracted content
     local html_utils = require "html"
     readable_article = html_utils.strip_tags(readable_article, allowed_tags)
 
-    -- Convert strong/em to b/i for vintage browser compatibility
     readable_article = readable_article:gsub("strong>", "b>"):gsub("em>", "i>")
 
-    -- Build page output
     local out = {}
     out[#out + 1] = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 2.0//EN">'
     out[#out + 1] = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'

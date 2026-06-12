@@ -1,10 +1,5 @@
--- lua/article_extract.lua
--- Heuristic article content extractor — text-only, no images
--- Uses curl via io.popen for reliable HTTPS support
-
 local _M = {}
 
--- HTTP GET using curl
 local function http_get(url, timeout_ms)
     local timeout = (timeout_ms or 15000) / 1000
     local cmd = string.format(
@@ -28,7 +23,6 @@ local function http_get(url, timeout_ms)
     return body
 end
 
--- Common class/id patterns that indicate article content containers
 local CONTAINER_CLASSES = {
     "article-body", "articlebody", "article__body", "article_body",
     "entry-content", "entrycontent", "post-body", "postbody",
@@ -41,7 +35,6 @@ local CONTAINER_IDS = {
     "content", "postbody", "storybody",
 }
 
--- Find the best article content container in raw HTML
 local function find_best_container(html)
     local best_score = 0
     local best_content = nil
@@ -118,7 +111,6 @@ local function find_best_container(html)
         end
     end
 
-    -- Try <article> tag as last resort
     if not best_content then
         local art_start, art_end = html:find("<article[^>]*>")
         if art_start then
@@ -134,8 +126,7 @@ local function find_best_container(html)
         end
     end
 
-    -- Fallback: use entire body content
-    if not best_content then
+   if not best_content then
         local body_start, body_end = html:find("<body[^>]*>")
         if body_start then
             local close_pos = html:find("</body>", body_end, true)
@@ -156,7 +147,6 @@ local function find_best_container(html)
     return best_content, best_title
 end
 
--- Count words in a string
 local function count_words(text)
     local count = 0
     local in_word = false
@@ -174,7 +164,6 @@ local function count_words(text)
     return count
 end
 
--- Count paragraphs in content
 local function count_paragraphs(content)
     local count = 0
     for _ in content:gmatch("<[/]?[pPsS][%s>/%]]") do
@@ -187,7 +176,6 @@ local function count_paragraphs(content)
     return count
 end
 
--- Calculate link density (ratio of text inside <a> tags to total text)
 local function calc_link_density(content)
     local total_words = count_words(content)
     if total_words == 0 then return 1.0 end
@@ -201,12 +189,10 @@ local function calc_link_density(content)
     return link_text_words / math.max(total_words, 1)
 end
 
--- Check for heading tags in content
 local function has_headings(content)
     return content:find("<h[1-6][^>]*>") ~= nil
 end
 
--- Score a content block (higher = more likely to be the article)
 _M._score_content = function(content)
     local words = count_words(content)
     if words < 50 then return 0 end
@@ -228,7 +214,6 @@ _M._score_content = function(content)
     return score
 end
 
--- Fetch and extract article content from a URL
 function _M.fetch_and_extract(article_url, allowed_tags_str)
     local body = http_get(article_url)
     if not body or #body == 0 then
